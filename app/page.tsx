@@ -1,37 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Stage, Layer, Rect, Text, Circle } from "react-konva";
+import { useState } from "react";
+import Toolbar from "../app/components/toolbar/Toolbar";
+import Whiteboard from "../app/components/board/Whireboard";
+import { BoardItemModel, Tool } from "../app/types/board";
 
 export default function Home() {
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [tool, setTool] = useState<Tool>("select");
+  const [items, setItems] = useState<BoardItemModel[]>([]);
 
-  useEffect(() => {
-    const update = () =>
-      setSize({ width: window.innerWidth, height: window.innerHeight });
+  const addItem = (item: Omit<BoardItemModel, "id">) => {
+    setItems((prev) => [
+      ...prev,
+      { id: String(Date.now()) + Math.random().toString(16).slice(2), ...item },
+    ]);
+    setTool("select");
+  };
 
-    update(); // initial
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  if (!size.width || !size.height) return null;
+  const moveItem = (id: string, x: number, y: number) => {
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, x, y } : p)));
+  };
 
   return (
-    <Stage width={size.width} height={size.height}>
-      <Layer>
-        <Text text="Try to drag shapes" fontSize={15} />
-        <Rect
-          x={20}
-          y={50}
-          width={100}
-          height={100}
-          fill="red"
-          shadowBlur={10}
-          draggable
-        />
-        <Circle x={200} y={100} radius={50} fill="green" draggable />
-      </Layer>
-    </Stage>
+    <div className="h-screen w-screen bg-zinc-100 p-4">
+      <div className="mx-auto flex h-full max-w-6xl flex-col gap-3">
+        <Toolbar activeTool={tool} onChange={setTool} />
+
+        <div className="flex-1 min-h-0">
+          <Whiteboard
+            tool={tool}
+            items={items}
+            onAdd={addItem}
+            onMove={moveItem}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
