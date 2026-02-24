@@ -8,13 +8,24 @@ import BoardItem from "../board/BoardItem";
 type Props = {
   tool: Tool;
   items: BoardItemModel[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  onOpen: (id: string) => void;
   onAdd: (item: Omit<BoardItemModel, "id">) => void;
-  onMove: (id: string, x: number, y: number) => void;
+  onMove: (id: string, x: number, y: number) => boolean;
 };
 
 const GRID = 20;
 
-export default function Whiteboard({ tool, items, onAdd, onMove }: Props) {
+export default function Whiteboard({
+  tool,
+  items,
+  selectedId,
+  onSelect,
+  onOpen,
+  onAdd,
+  onMove,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -38,24 +49,8 @@ export default function Whiteboard({ tool, items, onAdd, onMove }: Props) {
 
   const ready = size.w > 0 && size.h > 0;
 
-  const handlePointerDown = (e: any) => {
-    if (tool !== "rect" && tool !== "circle") return;
-
-    // ✅ створюємо тільки якщо клік по пустому фону Stage
-    const clickedOnEmpty = e.target === e.target.getStage();
-    if (!clickedOnEmpty) return;
-
-    const stage = stageRef.current;
-    const pos = stage?.getPointerPosition();
-    if (!pos) return;
-
-    onAdd({ type: tool, x: pos.x, y: pos.y });
-  };
-
-  // ✅ Готуємо лінії сітки один раз на кожну зміну size
   const gridLines = useMemo(() => {
     if (!ready) return [];
-
     const lines: React.ReactNode[] = [];
 
     for (let x = GRID; x < size.w; x += GRID) {
@@ -70,7 +65,6 @@ export default function Whiteboard({ tool, items, onAdd, onMove }: Props) {
         />,
       );
     }
-
     for (let y = GRID; y < size.h; y += GRID) {
       lines.push(
         <Line
@@ -83,9 +77,26 @@ export default function Whiteboard({ tool, items, onAdd, onMove }: Props) {
         />,
       );
     }
-
     return lines;
   }, [ready, size.w, size.h]);
+
+  const handlePointerDown = (e: any) => {
+    const clickedOnEmpty = e.target === e.target.getStage();
+
+    if (clickedOnEmpty) onSelect(null);
+
+    // add only on empty, and only if tool != select
+    if (tool === "select") return;
+    if (!clickedOnEmpty) return;
+
+    const pos = stageRef.current?.getPointerPosition();
+    if (!pos) return;
+
+    if (tool === "table")
+      onAdd({ type: "table", x: pos.x, y: pos.y, seats: 4, label: "T-01" });
+    if (tool === "rect") onAdd({ type: "rect", x: pos.x, y: pos.y });
+    if (tool === "circle") onAdd({ type: "circle", x: pos.x, y: pos.y });
+  };
 
   return (
     <div
@@ -100,17 +111,18 @@ export default function Whiteboard({ tool, items, onAdd, onMove }: Props) {
           onMouseDown={handlePointerDown}
           onTouchStart={handlePointerDown}
         >
-          {/* grid layer */}
           <Layer listening={false}>{gridLines}</Layer>
 
-          {/* items layer */}
           <Layer>
             {items.map((it) => (
               <BoardItem
                 key={it.id}
                 item={it}
+                selected={it.id === selectedId}
+                onSelect={(id) => onSelect(id)}
+                onOpen={onOpen}
                 onMove={onMove}
-                draggable={tool === "select"}
+                draggable={true}
               />
             ))}
           </Layer>

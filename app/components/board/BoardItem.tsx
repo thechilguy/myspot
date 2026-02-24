@@ -1,81 +1,189 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { Circle, Rect } from "react-konva";
+import { Circle, Rect, Group } from "react-konva";
 import { BoardItemModel } from "../../types/board";
 
 type Props = {
   item: BoardItemModel;
-  onMove: (id: string, x: number, y: number) => boolean; // ✅ boolean
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onOpen: (id: string) => void; // ✅ open modal
+  onMove: (id: string, x: number, y: number) => boolean;
   draggable: boolean;
 };
 
-export default function BoardItem({ item, onMove, draggable }: Props) {
+export default function BoardItem({
+  item,
+  selected,
+  onSelect,
+  onOpen,
+  onMove,
+  draggable,
+}: Props) {
   const lastGood = useRef({ x: item.x, y: item.y });
 
-  // якщо позицію змінили ззовні (state), синхронізуємо lastGood
   useEffect(() => {
     lastGood.current = { x: item.x, y: item.y };
   }, [item.x, item.y]);
 
-  if (item.type === "circle") {
+  // ================= TABLE =================
+  if (item.type === "table") {
+    const tableW = 90;
+    const tableH = 60;
+    const chairR = 10;
+
+    const seats = item.seats ?? 4;
+    const leftCount = Math.floor(seats / 2);
+    const rightCount = Math.ceil(seats / 2);
+
+    const leftGap = tableH / (leftCount + 1);
+    const rightGap = tableH / (rightCount + 1);
+
     return (
-      <Circle
+      <Group
         x={item.x}
         y={item.y}
-        radius={32}
-        fill="#E8F5E9"
-        stroke="#2E7D32"
-        strokeWidth={2}
         draggable={draggable}
+        onMouseDown={(e) => {
+          e.cancelBubble = true;
+          onSelect(item.id);
+        }}
+        onTouchStart={(e) => {
+          e.cancelBubble = true;
+          onSelect(item.id);
+        }}
+        onDblClick={(e) => {
+          e.cancelBubble = true;
+          onOpen(item.id);
+        }}
+        onDblTap={(e) => {
+          e.cancelBubble = true;
+          onOpen(item.id);
+        }}
         onDragMove={(e) => {
           const nx = e.target.x();
           const ny = e.target.y();
           const ok = onMove(item.id, nx, ny);
 
-          if (!ok) {
-            // ❌ відкат
-            e.target.position(lastGood.current);
-          } else {
-            // ✅ фіксуємо
-            lastGood.current = { x: nx, y: ny };
-            // щоб візуально теж було snap-значення (state може встигнути не одразу)
-            e.target.position({ x: nx, y: ny });
-          }
+          if (!ok) e.target.position(lastGood.current);
+          else lastGood.current = { x: nx, y: ny };
+        }}
+      >
+        {/* CHAIRS */}
+        {Array.from({ length: leftCount }).map((_, i) => (
+          <Circle
+            key={`l-${i}`}
+            x={-tableW / 2 - 18}
+            y={-tableH / 2 + leftGap * (i + 1)}
+            radius={chairR}
+            fill="#F5F5F5"
+            stroke="#444"
+            strokeWidth={1}
+          />
+        ))}
+
+        {Array.from({ length: rightCount }).map((_, i) => (
+          <Circle
+            key={`r-${i}`}
+            x={tableW / 2 + 18}
+            y={-tableH / 2 + rightGap * (i + 1)}
+            radius={chairR}
+            fill="#F5F5F5"
+            stroke="#444"
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* TABLE BODY (hit area) */}
+        <Rect
+          x={-tableW / 2}
+          y={-tableH / 2}
+          width={tableW}
+          height={tableH}
+          cornerRadius={14}
+          fill="#E3F2FD"
+          stroke={selected ? "#111" : "#1565C0"}
+          strokeWidth={selected ? 3 : 2}
+        />
+
+        {/* SELECTION BORDER */}
+        {selected && (
+          <Rect
+            x={-tableW / 2 - 25}
+            y={-tableH / 2 - 25}
+            width={tableW + 50}
+            height={tableH + 50}
+            cornerRadius={20}
+            stroke="#111"
+            strokeWidth={2}
+            dash={[6, 6]}
+            listening={false}
+          />
+        )}
+      </Group>
+    );
+  }
+
+  // ================= CIRCLE =================
+  if (item.type === "circle") {
+    const r = 32;
+
+    return (
+      <Circle
+        x={item.x}
+        y={item.y}
+        radius={r}
+        fill="#E8F5E9"
+        stroke={selected ? "#111" : "#2E7D32"}
+        strokeWidth={selected ? 3 : 2}
+        draggable={draggable}
+        onMouseDown={(e) => {
+          e.cancelBubble = true;
+          onSelect(item.id);
+        }}
+        onDragMove={(e) => {
+          const nx = e.target.x();
+          const ny = e.target.y();
+          const ok = onMove(item.id, nx, ny);
+
+          if (!ok) e.target.position(lastGood.current);
+          else lastGood.current = { x: nx, y: ny };
         }}
       />
     );
   }
 
-  // rect: в state зберігаємо ЦЕНТР, а в Konva позиція — top-left
+  // ================= RECT =================
+  const halfW = 40;
+  const halfH = 28;
+
   return (
     <Rect
-      x={item.x - 40}
-      y={item.y - 28}
-      width={80}
-      height={56}
+      x={item.x - halfW}
+      y={item.y - halfH}
+      width={halfW * 2}
+      height={halfH * 2}
       cornerRadius={12}
       fill="#E3F2FD"
-      stroke="#1565C0"
-      strokeWidth={2}
+      stroke={selected ? "#111" : "#1565C0"}
+      strokeWidth={selected ? 3 : 2}
       draggable={draggable}
+      onMouseDown={(e) => {
+        e.cancelBubble = true;
+        onSelect(item.id);
+      }}
       onDragMove={(e) => {
-        const topLeftX = e.target.x();
-        const topLeftY = e.target.y();
-
-        const centerX = topLeftX + 40;
-        const centerY = topLeftY + 28;
-
-        const ok = onMove(item.id, centerX, centerY);
+        const cx = e.target.x() + halfW;
+        const cy = e.target.y() + halfH;
+        const ok = onMove(item.id, cx, cy);
 
         if (!ok) {
-          // відкат на lastGood (центр → top-left)
           e.target.position({
-            x: lastGood.current.x - 40,
-            y: lastGood.current.y - 28,
+            x: lastGood.current.x - halfW,
+            y: lastGood.current.y - halfH,
           });
         } else {
-          lastGood.current = { x: centerX, y: centerY };
-          e.target.position({ x: topLeftX, y: topLeftY });
+          lastGood.current = { x: cx, y: cy };
         }
       }}
     />
