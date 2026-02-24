@@ -4,14 +4,19 @@ import { useState } from "react";
 import Toolbar from "../app/components/toolbar/Toolbar";
 import Whiteboard from "../app/components/board/Whireboard";
 import { BoardItemModel, Tool } from "../app/types/board";
+import TableModal from "../app/components/modals/TableModal";
 
 const GRID = 20;
 const snap = (v: number) => Math.round(v / GRID) * GRID;
 
-// MUST MATCH BoardItem.tsx sizes
+// must match BoardItem sizes
 const CIRCLE_R = 32;
 const RECT_HALF_W = 40;
 const RECT_HALF_H = 28;
+
+// table bounds (tableW=90, tableH=60 + chairs padding)
+const TABLE_HALF_W = 90 / 2 + 28;
+const TABLE_HALF_H = 60 / 2 + 24;
 
 type Bounds = { left: number; right: number; top: number; bottom: number };
 
@@ -24,11 +29,19 @@ function getBounds(item: Pick<BoardItemModel, "type" | "x" | "y">): Bounds {
       bottom: item.y + CIRCLE_R,
     };
   }
+  if (item.type === "rect") {
+    return {
+      left: item.x - RECT_HALF_W,
+      right: item.x + RECT_HALF_W,
+      top: item.y - RECT_HALF_H,
+      bottom: item.y + RECT_HALF_H,
+    };
+  }
   return {
-    left: item.x - RECT_HALF_W,
-    right: item.x + RECT_HALF_W,
-    top: item.y - RECT_HALF_H,
-    bottom: item.y + RECT_HALF_H,
+    left: item.x - TABLE_HALF_W,
+    right: item.x + TABLE_HALF_W,
+    top: item.y - TABLE_HALF_H,
+    bottom: item.y + TABLE_HALF_H,
   };
 }
 
@@ -56,7 +69,11 @@ function wouldCollide(
 
 export default function Home() {
   const [tool, setTool] = useState<Tool>("select");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [items, setItems] = useState<BoardItemModel[]>([]);
+
+  const opened = items.find((i) => i.id === openId) ?? null;
 
   const addItem = (item: Omit<BoardItemModel, "id">) => {
     const x = snap(item.x);
@@ -69,7 +86,6 @@ export default function Home() {
       y,
     };
 
-    // ✅ collision check inside setter (щоб не ловити “старий” items)
     setItems((prev) => {
       const b = getBounds(newItem);
       const hit = prev.some((o) => overlaps(b, getBounds(o)));
@@ -77,10 +93,10 @@ export default function Home() {
       return [...prev, newItem];
     });
 
+    setSelectedId(newItem.id);
     setTool("select");
   };
 
-  // ✅ ВАЖЛИВО: повертаємо true/false — чи прийняли рух
   const moveItem = (id: string, x: number, y: number): boolean => {
     const nx = snap(x);
     const ny = snap(y);
@@ -103,15 +119,23 @@ export default function Home() {
     <div className="h-screen w-screen bg-zinc-100 p-4">
       <div className="mx-auto flex h-full max-w-6xl flex-col gap-3">
         <Toolbar activeTool={tool} onChange={setTool} />
+
         <div className="flex-1 min-h-0">
           <Whiteboard
             tool={tool}
             items={items}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onOpen={(id) => setOpenId(id)}
             onAdd={addItem}
             onMove={moveItem}
           />
         </div>
       </div>
+
+      {opened && opened.type === "table" && (
+        <TableModal item={opened} onClose={() => setOpenId(null)} />
+      )}
     </div>
   );
 }

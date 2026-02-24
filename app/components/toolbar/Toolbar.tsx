@@ -18,12 +18,12 @@ function Btn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={[
         "rounded-lg border px-3 py-2 text-sm",
         active ? "bg-black text-white" : "bg-white",
       ].join(" ")}
-      type="button"
     >
       {children}
     </button>
@@ -41,6 +41,9 @@ export default function Toolbar({ activeTool, onChange }: Props) {
       </Btn>
       <Btn active={activeTool === "circle"} onClick={() => onChange("circle")}>
         Circle
+      </Btn>
+      <Btn active={activeTool === "table"} onClick={() => onChange("table")}>
+        Table
       </Btn>
 
       <div className="ml-auto pr-2 text-xs text-zinc-500">
