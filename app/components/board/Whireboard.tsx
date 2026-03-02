@@ -52,7 +52,6 @@ export default function Whiteboard({
   const gridLines = useMemo(() => {
     if (!ready) return [];
     const lines: React.ReactNode[] = [];
-
     for (let x = GRID; x < size.w; x += GRID) {
       lines.push(
         <Line
@@ -85,17 +84,16 @@ export default function Whiteboard({
 
     if (clickedOnEmpty) onSelect(null);
 
-    // add only on empty, and only if tool != select
     if (tool === "select") return;
     if (!clickedOnEmpty) return;
 
     const pos = stageRef.current?.getPointerPosition();
     if (!pos) return;
 
-    if (tool === "table")
-      onAdd({ type: "table", x: pos.x, y: pos.y, seats: 4, label: "T-01" });
-    if (tool === "rect") onAdd({ type: "rect", x: pos.x, y: pos.y });
-    if (tool === "circle") onAdd({ type: "circle", x: pos.x, y: pos.y });
+    if (tool === "tableRect")
+      onAdd({ type: "tableRect", x: pos.x, y: pos.y, seats: 4 });
+    if (tool === "tableRound")
+      onAdd({ type: "tableRound", x: pos.x, y: pos.y, seats: 4 });
   };
 
   return (

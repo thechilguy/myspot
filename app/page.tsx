@@ -5,43 +5,38 @@ import Toolbar from "../app/components/toolbar/Toolbar";
 import Whiteboard from "../app/components/board/Whireboard";
 import { BoardItemModel, Tool } from "../app/types/board";
 import TableModal from "../app/components/modals/TableModal";
+import { ICON_REGISTRY } from "./assets/board/iconRegistry";
 
 const GRID = 20;
 const snap = (v: number) => Math.round(v / GRID) * GRID;
 
-// must match BoardItem sizes
-const CIRCLE_R = 32;
-const RECT_HALF_W = 40;
-const RECT_HALF_H = 28;
-
-// table bounds (tableW=90, tableH=60 + chairs padding)
-const TABLE_HALF_W = 90 / 2 + 28;
-const TABLE_HALF_H = 60 / 2 + 24;
+// іконки 90x90 => bounds
+const HALF_W = 45;
+const HALF_H = 45;
 
 type Bounds = { left: number; right: number; top: number; bottom: number };
 
-function getBounds(item: Pick<BoardItemModel, "type" | "x" | "y">): Bounds {
-  if (item.type === "circle") {
+function getBounds(item: Pick<BoardItemModel, "type" | "x" | "y">) {
+  const cfg = ICON_REGISTRY[item.type as keyof typeof ICON_REGISTRY];
+  if (!cfg) {
+    // fallback, щоб не падало (і щоб ти побачив проблему в консолі)
+    console.warn("Unknown item.type:", item.type);
+    const halfW = 45;
+    const halfH = 45;
     return {
-      left: item.x - CIRCLE_R,
-      right: item.x + CIRCLE_R,
-      top: item.y - CIRCLE_R,
-      bottom: item.y + CIRCLE_R,
+      left: item.x - halfW,
+      right: item.x + halfW,
+      top: item.y - halfH,
+      bottom: item.y + halfH,
     };
   }
-  if (item.type === "rect") {
-    return {
-      left: item.x - RECT_HALF_W,
-      right: item.x + RECT_HALF_W,
-      top: item.y - RECT_HALF_H,
-      bottom: item.y + RECT_HALF_H,
-    };
-  }
+
+  const { halfW, halfH } = cfg.bounds;
   return {
-    left: item.x - TABLE_HALF_W,
-    right: item.x + TABLE_HALF_W,
-    top: item.y - TABLE_HALF_H,
-    bottom: item.y + TABLE_HALF_H,
+    left: item.x - halfW,
+    right: item.x + halfW,
+    top: item.y - halfH,
+    bottom: item.y + halfH,
   };
 }
 
@@ -60,10 +55,7 @@ function wouldCollide(
   nx: number,
   ny: number,
 ) {
-  const me = items.find((i) => i.id === movingId);
-  if (!me) return false;
-
-  const nextB = getBounds({ type: me.type, x: nx, y: ny });
+  const nextB = getBounds({ x: nx, y: ny });
   return items.some((o) => o.id !== movingId && overlaps(nextB, getBounds(o)));
 }
 
@@ -76,24 +68,32 @@ export default function Home() {
   const opened = items.find((i) => i.id === openId) ?? null;
 
   const addItem = (item: Omit<BoardItemModel, "id">) => {
-    const x = snap(item.x);
-    const y = snap(item.y);
-
-    const newItem: BoardItemModel = {
-      id: String(Date.now()) + Math.random().toString(16).slice(2),
-      ...item,
-      x,
-      y,
-    };
+    const id = String(Date.now()) + Math.random().toString(16).slice(2);
 
     setItems((prev) => {
+      const x = snap(item.x);
+      const y = snap(item.y);
+
+      const tableCount = prev.length + 1;
+      const label = `T-${String(tableCount).padStart(2, "0")}`;
+
+      const newItem: BoardItemModel = {
+        id,
+        ...item,
+        x,
+        y,
+        label: item.label ?? label,
+        seats: item.seats ?? 4,
+      };
+
       const b = getBounds(newItem);
       const hit = prev.some((o) => overlaps(b, getBounds(o)));
       if (hit) return prev;
+
       return [...prev, newItem];
     });
 
-    setSelectedId(newItem.id);
+    setSelectedId(id);
     setTool("select");
   };
 
@@ -133,9 +133,7 @@ export default function Home() {
         </div>
       </div>
 
-      {opened && opened.type === "table" && (
-        <TableModal item={opened} onClose={() => setOpenId(null)} />
-      )}
+      {opened && <TableModal item={opened} onClose={() => setOpenId(null)} />}
     </div>
   );
 }
