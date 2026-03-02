@@ -1,6 +1,6 @@
 "use client";
 
-import { Tool } from "../../types/board";
+import { Tool } from "@/types/board";
 
 type Props = {
   activeTool: Tool;
@@ -36,14 +36,17 @@ export default function Toolbar({ activeTool, onChange }: Props) {
       <Btn active={activeTool === "select"} onClick={() => onChange("select")}>
         Select
       </Btn>
-      <Btn active={activeTool === "rect"} onClick={() => onChange("rect")}>
-        Rect
+      <Btn
+        active={activeTool === "tableRound"}
+        onClick={() => onChange("tableRound")}
+      >
+        Round table
       </Btn>
-      <Btn active={activeTool === "circle"} onClick={() => onChange("circle")}>
-        Circle
-      </Btn>
-      <Btn active={activeTool === "table"} onClick={() => onChange("table")}>
-        Table
+      <Btn
+        active={activeTool === "tableSquare"}
+        onClick={() => onChange("tableSquare")}
+      >
+        Square table
       </Btn>
 
       <div className="ml-auto pr-2 text-xs text-zinc-500">

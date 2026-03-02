@@ -1,14 +1,14 @@
-export type Tool = "select" | "rect" | "circle" | "table";
-export type BoardItemType = "rect" | "circle" | "table";
+import type { IconType } from "../assets/board/iconRegistry";
+
+export type Tool = "select" | IconType;
 
 export type BoardItemModel = {
   id: string;
-  type: BoardItemType;
+  type: IconType;
   x: number;
   y: number;
 
-  // table-only info
+  label?: string;
   seats?: number;
-  label?: string; // "T-01", "T-02"...
-  status?: "free" | "reserved" | "busy";
+  people?: number;
 };
