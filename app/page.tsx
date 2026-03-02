@@ -79,21 +79,42 @@ export default function Home() {
     const x = snap(item.x);
     const y = snap(item.y);
 
-    const newItem: BoardItemModel = {
-      id: String(Date.now()) + Math.random().toString(16).slice(2),
-      ...item,
-      x,
-      y,
-    };
+    const id = String(Date.now()) + Math.random().toString(16).slice(2);
 
     setItems((prev) => {
+      // якщо додаємо table — генеруємо унікальний label
+      let nextLabel = item.label;
+
+      if (item.type === "table") {
+        const countTables = prev.filter((p) => p.type === "table").length;
+        const n = countTables + 1;
+        nextLabel = `T-${String(n).padStart(2, "0")}`; // T-01, T-02...
+      }
+
+      const newItem: BoardItemModel = {
+        id,
+        ...item,
+        x,
+        y,
+        // дефолти для table
+        ...(item.type === "table"
+          ? {
+              seats: item.seats ?? 4,
+              label: nextLabel,
+              status: item.status ?? "free",
+            }
+          : {}),
+      };
+
+      // collision check (твоя логіка лишається)
       const b = getBounds(newItem);
       const hit = prev.some((o) => overlaps(b, getBounds(o)));
       if (hit) return prev;
+
       return [...prev, newItem];
     });
 
-    setSelectedId(newItem.id);
+    setSelectedId(id);
     setTool("select");
   };
 

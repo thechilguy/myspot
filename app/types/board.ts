@@ -7,6 +7,8 @@ export type BoardItemModel = {
   x: number;
   y: number;
 
-  seats?: number; // table
-  label?: string; // table info, напр "T-01"
+  // table-only info
+  seats?: number;
+  label?: string; // "T-01", "T-02"...
+  status?: "free" | "reserved" | "busy";
 };
