@@ -43,10 +43,10 @@ export default function Toolbar({ activeTool, onChange }: Props) {
         Round table
       </Btn>
       <Btn
-        active={activeTool === "tableSquare"}
-        onClick={() => onChange("tableSquare")}
+        active={activeTool === "tableRect"}
+        onClick={() => onChange("tableRect")}
       >
-        Square table
+        Rect table
       </Btn>
 
       <div className="ml-auto pr-2 text-xs text-zinc-500">
