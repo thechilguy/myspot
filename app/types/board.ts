@@ -9,6 +9,6 @@ export type BoardItemModel = {
   y: number;
 
   label?: string;
-  seats?: number;
-  people?: number;
+  seats: number; // max
+  people: number; // occupied (0..seats)
 };
